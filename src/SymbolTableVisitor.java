@@ -1,7 +1,4 @@
-// video link 1: https://drive.google.com/file/d/1YznmKnjb_gPLYhYn3BappxFaodxl2HeJ/view?usp=sharing
-
 import syntaxtree.*;
-import java.util.HashMap;
 
 /*
  * SymbolTableVisitor class

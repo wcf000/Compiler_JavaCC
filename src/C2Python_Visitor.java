@@ -1,5 +1,3 @@
-// Video 1: https://drive.google.com/file/d/1C8qZZRFb8yVHpoZQxQU4kxo66bPFApuD/view?usp=sharing
-
 import syntaxtree.And;
 import syntaxtree.ArrayAssign;
 import syntaxtree.ArrayLength;

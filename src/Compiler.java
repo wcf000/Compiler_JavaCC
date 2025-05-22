@@ -39,7 +39,7 @@ public class Compiler implements CompilerConstants {
       System.out.println(v4.num_errors+" type errors found");
 */
 
-/* uncomment this only for Source Code Generation */
+/* uncomment this only for Assembly Code Generation */
       //System.out.println("\n\nCode Generation");
       CodeGen_Visitor_Tiara v5 = new CodeGen_Visitor_Tiara();
       String result = (String) n.accept(v5,"");

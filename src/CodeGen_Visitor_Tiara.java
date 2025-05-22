@@ -33,7 +33,7 @@ import java.util.HashMap;
 
 import java.util.HashMap;
 
-public class CodeGen_Visitor implements Visitor {
+public class CodeGen_Visitor_Tiara implements Visitor {
 
     private HashMap<String, String> labelMap = new HashMap<String, String>();
     private HashMap<String, String> varMap = new HashMap<String, String>();
@@ -53,9 +53,15 @@ public class CodeGen_Visitor implements Visitor {
         // not in MiniC
         Exp e1=node.e1;
         Exp e2=node.e2;
-        node.e1.accept(this, data);
-        node.e2.accept(this, data);
-        return "# AND not implemented\n"; 
+        String e1code = (String) node.e1.accept(this, data);
+        String e2code = (String) node.e2.accept(this, data);
+        return "# And operation\n" 
+                + e1code 
+                + e2code
+                + "popq %rdx\n" 
+                + "popq %rax\n" 
+                + "imulq %rdx, %rax\n" 
+                + "pushq %rax\n"; 
     } 
 
     public Object visit(ArrayAssign node, Object data){ 
@@ -63,26 +69,48 @@ public class CodeGen_Visitor implements Visitor {
         Identifier i = node.i;
         Exp e1=node.e1;
         Exp e2=node.e2;
-        node.i.accept(this,data);
-        node.e1.accept(this, data);
-        node.e2.accept(this, data);
-        return "# ArrayAssign not implemented\n";
+        String e1Code = (String) node.e1.accept(this, data);
+        String e2Code = (String) node.e2.accept(this, data);
+
+        String varName = currClass+"_"+currMethod+"_"+i.s;
+        String location = varMap.get(varName);
+
+        return "# Array assign\n" 
+        + e2Code 
+        + e1Code
+        + "#"+ node.accept(ppVisitor,0) + "\n"
+        + "popq %rdx\n"
+        + "incq %rdx\n"
+        + "popq %rcx\n" 
+        + "movq " +location+ ", %rax\n"
+        + "movq %rcx, (%rax, %rdx, 4)\n";
     } 
 
     public Object visit(ArrayLength node, Object data){ 
         // not in MiniC
         Exp e=node.e;
-        node.e.accept(this, data);
-        return "#Array Length not implemented\n"; 
+        String eCode = (String) node.e.accept(this, data);
+        return "# Array length\n" 
+        + eCode
+        + "popq %rax\n"
+        + "movq (%rax), %rax\n"
+        + "pushq %rax\n";
     } 
 
     public Object visit(ArrayLookup node, Object data){ 
         // not in MiniC
         Exp e1=node.e1;
         Exp e2=node.e2;
-        node.e1.accept(this, data);
-        node.e2.accept(this, data);
-        return "#ArrayLookup not implemented\n"; 
+        String e1Code = (String) node.e1.accept(this, data);
+        String e2Code = (String) node.e2.accept(this, data);
+        return "# Array lookup\n"
+        + e1Code
+        + e2Code 
+        + "popq %rdx\n" 
+        + "incq %rdx\n" 
+        + "popq %rax\n" 
+        + "movq (%rax, %rdx, 4), %rax\n"
+        + "pushq %rax\n";
     } 
 
     public Object visit(Assign node, Object data){ 
@@ -171,7 +199,7 @@ public class CodeGen_Visitor implements Visitor {
 
         makeCall = 
               "# calling "+i.s+"\n"
-            + "callq _"+i.s+"\n"  // using function name as label with "_" prefix
+            + "callq "+i.s+"\n"  // using function name as label with "_" prefix
             + "pushq %rax\n"; // push the result of the function on the stack
 
         return 
@@ -187,7 +215,7 @@ public class CodeGen_Visitor implements Visitor {
         VarDeclList v=node.v;
         MethodDeclList m=node.m;
 
-        String theLabel = i.s + "_"+(labelNum++);
+        String theLabel = i.s +(labelNum++);
         labelMap.put(i.s, theLabel);
         System.out.println(theLabel+":");
         currClass = i.s;
@@ -246,7 +274,8 @@ public class CodeGen_Visitor implements Visitor {
 
     public Object visit(False node, Object data){ 
         // not implemented yet
-        return "# False not implemented ";
+    	return "# false\n" 
+				+ "pushq $0\n";
     } 
 
     public Object visit(Formal node, Object data){ 
@@ -427,8 +456,8 @@ public class CodeGen_Visitor implements Visitor {
         // not in MiniC
         Identifier i=node.i;
         Statement s=node.s;
-        labelMap.put(i.s, "_main");
-        System.out.println("_main:");
+        labelMap.put(i.s, "main");
+        System.out.println("main:");
 
         node.i.accept(this, data);
         node.s.accept(this, data);
@@ -499,7 +528,7 @@ public class CodeGen_Visitor implements Visitor {
         if (vs==null){
             return "\n";
         }else {
-            String varName = currClass+"_"+currMethod+"_"+vs.v.i.s;
+        	String varName = currClass+"_"+currMethod+"_"+vs.v.i.s;
             String location = varMap.get(varName);
             String initCode = initializeLocals(vs.vlist);
             initCode +=
@@ -557,8 +586,8 @@ public class CodeGen_Visitor implements Visitor {
         int numLocals = getLocalsLocations(node.v,numFormals);
 
         // create label for this method and store in labelMap
-        String fullMethodName = currClass+"_"+i.s;
-        String theLabel = fullMethodName;
+        String fullMethodName = currClass+i.s;
+        String theLabel = i.s; //fullMethodName;
         labelMap.put(fullMethodName, theLabel);
 
         stackOffset = -8*(numFormals+numLocals); // reserve space for formals/locals
@@ -679,9 +708,20 @@ public class CodeGen_Visitor implements Visitor {
     public Object visit(NewArray node, Object data){ 
         // not in MiniC
         Exp e=node.e;
-        node.e.accept(this, data);
+        String eCode = (String) node.e.accept(this, data);
 
-        return "# NewArray not implemented\n";
+        return "# New array\n" 
+        + eCode
+        + "popq %rax\n"            
+        + "movq $4, %rdx\n"        
+        + "movq %rax, %rsi\n"     
+        + "incq %rax\n" 
+        + "imulq %rdx, %rax\n"   
+        + "movq %rax, %rdi\n"     
+        + "callq malloc\n"        
+        + "movq %rsi, (%rax)\n"     
+        + "addq $4, %rax\n"    
+        + "pushq %rax\n";         
     }
 
 
@@ -697,9 +737,14 @@ public class CodeGen_Visitor implements Visitor {
     public Object visit(Not node, Object data){ 
         // not in MiniC
         Exp e=node.e;
-        node.e.accept(this, data);
+        String ecode = (String) node.e.accept(this, data);
 
-        return "#Not not implemented\n"; 
+        return "# Not operation\n" 
+        + ecode 
+        + "popq %rdx\n" 
+        + "movq $1, %rax\n" 
+        + "subq %rdx, %rax\n" 
+        + "pushq %rax\n";
     }
 
 
@@ -733,7 +778,7 @@ public class CodeGen_Visitor implements Visitor {
         + "# "+node.accept(ppVisitor, 0)
         +   "popq %rdi\n"
         +   "movb	$0, %al\n"  
-        +   "callq _print\n";
+        +   "callq print\n";
 
         return result;
     }
@@ -800,7 +845,8 @@ public class CodeGen_Visitor implements Visitor {
 
     public Object visit(True node, Object data){ 
         // not in MiniC
-        return "# True not implemented\n"; 
+    	return "# true\n" 
+    			+ "pushq $1\n";
     }
 
 
@@ -837,10 +883,18 @@ public class CodeGen_Visitor implements Visitor {
         // not in MiniC
         Exp e=node.e;
         Statement s=node.s;
-        node.e.accept(this, data);
-        node.s.accept(this, data);
-
-        return "# while not implemented\n"; 
+        String eCode = (String) node.e.accept(this, data);
+        String sCode = (String) node.s.accept(this, data);
+        String labelStart = "L" + labelNum++;
+        String labelEnd = "L" + labelNum++;
+        return labelStart + ":\n" +
+               eCode +
+               "popq %rax\n" +
+               "cmpq $0, %rax\n" +
+               "je " + labelEnd + "\n" +
+               sCode +
+               "jmp " + labelStart + "\n" +
+               labelEnd + ":\n";
     }
 
 }

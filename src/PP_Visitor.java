@@ -1,5 +1,3 @@
-// video link 1: https://drive.google.com/file/d/1LjILeJNdkWzfsiyBsOJMKCORt2FKVhcs/view?usp=sharing
-
 import syntaxtree.*;
 
 /* 

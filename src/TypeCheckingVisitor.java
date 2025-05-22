@@ -1,11 +1,8 @@
-// video link 1: https://drive.google.com/file/d/1DRvRE77O6nA2pUecgWgNDv4Ltyo0njyu/view?usp=sharing
-
 import syntaxtree.*;
-import java.util.HashMap;
 
 /*
  * TypeCheckingVisitor
- *    This currently only checks MiniC programs for type errors.
+ *  
  * This is the visitor that will be used to check for type errors.
  * It has the method to traverse the syntax tree for each node type,
  * The constructor will take the symbol table as a parameter.
